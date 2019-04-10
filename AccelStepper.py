@@ -1,7 +1,7 @@
 from math import sqrt
 
 from machine import Pin
-from utime import ticks_ms, sleep_ms
+from utime import ticks_us, sleep_ms
 
 
 def constrain(val, min_val, max_val):
@@ -32,16 +32,14 @@ class AccelStepper:
         self._minPulseWidth = 1
         self._enablePin = 0xff
         self._lastStepTime = 0
-        self._pin = []
+        self._pin = [0, 0, 0, 0]
         self._enableInverted = False
         self._n = 0
         self._c0 = 0.0
         self._cn = 0.0
         self._cmin = 1.0
         self._direction = DIRECTION_CCW
-        self._pinInverted = []
-        for i in range(4):
-            self._pinInverted[i] = 0
+        self._pinInverted = [0, 0, 0, 0]
 
         if len(args) == 6:
             self._interface = args[0]
@@ -53,10 +51,6 @@ class AccelStepper:
                 self.enable_outputs()
         elif len(args) == 2:
             self._interface = 0
-            self._pin[0] = 0
-            self._pin[1] = 0
-            self._pin[2] = 0
-            self._pin[3] = 0
             self._forward = args[0]
             self._backward = args[1]
 
@@ -71,9 +65,9 @@ class AccelStepper:
         self.move_to(self._currentPos + relative)
 
     def run_speed(self) -> bool:
-        if self._stepInterval != 0:
+        if not self._stepInterval:
             return False
-        time = ticks_ms()
+        time = ticks_us()
         if (time - self._lastStepTime) >= self._stepInterval:
             if self._direction == DIRECTION_CW:
                 self._currentPos += 1
@@ -102,7 +96,7 @@ class AccelStepper:
 
     def compute_new_speed(self) -> None:
         distance_to = self.distance_to_go()
-        steps_to_stop = (self._speed * self._speed) / (2.0 * self._acceleration)
+        steps_to_stop = int((self._speed * self._speed) / (2.0 * self._acceleration))
         if distance_to == 0 and steps_to_stop <= 1:
             self._stepInterval = 0
             self._speed = 0.0
@@ -124,7 +118,7 @@ class AccelStepper:
                     self._n = -self._n
         if self._n == 0:
             self._cn = self._c0
-            self._direction = DIRECTION_CW if (distance_to > 0) else DIRECTION_CCW
+            self._direction = DIRECTION_CW if distance_to > 0 else DIRECTION_CCW
         else:
             self._cn = self._cn - ((2.0 * self._cn) / ((4.0 * self._n) + 1))
             self._cn = max(self._cn, self._cmin)
@@ -146,7 +140,7 @@ class AccelStepper:
             self._maxSpeed = speed
             self._cmin = 1000000.0 / speed
             if self._n > 0:
-                self._n = (self._speed * self._speed) / (2.0 * self._acceleration)
+                self._n = int((self._speed * self._speed) / (2.0 * self._acceleration))
                 self.compute_new_speed()
 
     def max_speed(self):
