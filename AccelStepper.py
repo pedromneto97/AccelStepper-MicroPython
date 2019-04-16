@@ -255,7 +255,7 @@ class AccelStepper:
             self.set_output_pins(0b110)
 
     def step8(self, step: int) -> None:
-        aux = step % 6
+        aux = step & 0x7
         if aux == 0:
             self.set_output_pins(0b0001)
         elif aux == 1:
