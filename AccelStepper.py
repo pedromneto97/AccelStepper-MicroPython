@@ -1,4 +1,4 @@
-from math import sqrt
+from math import sqrt, fabs
 
 from machine import Pin
 from utime import ticks_us, sleep_ms
@@ -164,7 +164,7 @@ class AccelStepper:
         if speed == 0.0:
             self._stepInterval = 0
         else:
-            self._stepInterval = abs(1000000.0 / speed)
+            self._stepInterval = fabs(1000000.0 / speed)
             self._direction = DIRECTION_CW if speed > 0.0 else DIRECTION_CCW
         self._speed = speed
 
@@ -197,14 +197,12 @@ class AccelStepper:
             self._pin[i].value(True ^ self._pinInverted[i] if mask & (1 << i) else False ^ self._pinInverted[i])
 
     def step0(self, step: int) -> None:
-        step = None
         if self._speed > 0:
             self._forward()
         else:
             self._backward()
 
     def step1(self, step: int) -> None:
-        step = None
         self.set_output_pins(0b10 if self._direction else 0b00)
         self.set_output_pins(0b11 if self._direction else 0b01)
         sleep_ms(self._minPulseWidth)
